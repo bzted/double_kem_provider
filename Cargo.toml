@@ -1,0 +1,8 @@
+[package]
+name = "double_kem_provider"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+oqs = { git = "https://github.com/bzted/liboqs-rust.git", branch = "main", features = ["non_portable"] }
+rustls = { git = "https://github.com/rustls/rustls.git", branch = "main"}
