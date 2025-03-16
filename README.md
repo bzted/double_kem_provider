@@ -1,2 +1,2 @@
 # double_kem_provider
-Experimental Double Kem implementation for Rustls
+Experimental Double Kem provider implementation for Rustls
