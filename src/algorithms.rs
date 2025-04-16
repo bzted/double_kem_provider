@@ -6,9 +6,9 @@ use oqs::kem::Kem;
 use rustls::crypto;
 
 pub const KX_GROUPS: &[&dyn SupportedKxGroup] = &[
-    &MLKEM512 as &dyn SupportedKxGroup,
+    //&MLKEM512 as &dyn SupportedKxGroup,
     &MLKEM768 as &dyn SupportedKxGroup,
-    &MLKEM1024 as &dyn SupportedKxGroup,
+    //&MLKEM1024 as &dyn SupportedKxGroup,
 ];
 
 #[derive(Debug)]
@@ -25,11 +25,8 @@ impl crypto::SupportedKxGroup for MLKEM512 {
         let (pk, sk) = kem
             .keypair()
             .map_err(|_| rustls::Error::General("Failed to generate ML-KEM512 keypair".into()))?;
-        let (auth_pk, auth_sk) = kem.keypair().map_err(|_| {
-            rustls::Error::General("Failed to generate authentication keypair".into())
-        })?;
 
-        Ok(Box::new(KeyExchange::new(pk, sk, kem, auth_pk, auth_sk)))
+        Ok(Box::new(KeyExchange::new(pk, sk, kem)))
     }
     fn name(&self) -> rustls::NamedGroup {
         rustls::NamedGroup::MLKEM512
@@ -42,11 +39,8 @@ impl crypto::SupportedKxGroup for MLKEM768 {
         let (pk, sk) = kem
             .keypair()
             .map_err(|_| rustls::Error::General("Failed to generate ML-KEM768 keypair".into()))?;
-        let (auth_pk, auth_sk) = kem.keypair().map_err(|_| {
-            rustls::Error::General("Failed to generate authentication keypair".into())
-        })?;
 
-        Ok(Box::new(KeyExchange::new(pk, sk, kem, auth_pk, auth_sk)))
+        Ok(Box::new(KeyExchange::new(pk, sk, kem)))
     }
     fn name(&self) -> rustls::NamedGroup {
         rustls::NamedGroup::MLKEM768
@@ -59,11 +53,8 @@ impl crypto::SupportedKxGroup for MLKEM1024 {
         let (pk, sk) = kem
             .keypair()
             .map_err(|_| rustls::Error::General("Failed to generate ML-KEM1024 keypair".into()))?;
-        let (auth_pk, auth_sk) = kem.keypair().map_err(|_| {
-            rustls::Error::General("Failed to generate authentication keypair".into())
-        })?;
 
-        Ok(Box::new(KeyExchange::new(pk, sk, kem, auth_pk, auth_sk)))
+        Ok(Box::new(KeyExchange::new(pk, sk, kem)))
     }
     fn name(&self) -> rustls::NamedGroup {
         rustls::NamedGroup::MLKEM1024
