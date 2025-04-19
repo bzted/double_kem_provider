@@ -3,7 +3,7 @@ use crate::key_exchange::KeyExchange;
 use alloc::boxed::Box;
 use crypto::SupportedKxGroup;
 use oqs::kem::Kem;
-use rustls::crypto;
+use rustls::crypto::{self, CompletedKeyExchange, SharedSecret};
 
 pub const KX_GROUPS: &[&dyn SupportedKxGroup] = &[
     //&MLKEM512 as &dyn SupportedKxGroup,
@@ -31,6 +31,26 @@ impl crypto::SupportedKxGroup for MLKEM512 {
     fn name(&self) -> rustls::NamedGroup {
         rustls::NamedGroup::MLKEM512
     }
+
+    fn start_and_complete(
+        &self,
+        peer_pub_key: &[u8],
+    ) -> Result<crypto::CompletedKeyExchange, rustls::Error> {
+        let kem = Kem::new(oqs::kem::Algorithm::MlKem512)
+            .map_err(|_| rustls::Error::General("ML-KEM512 Algorithm not found".into()))?;
+        let peer_pk = kem
+            .public_key_from_bytes(peer_pub_key)
+            .ok_or_else(|| rustls::Error::General("Invalid peer public key".into()))?;
+        let (ct, ss) = kem
+            .encapsulate(&peer_pk)
+            .map_err(|_| rustls::Error::General("KEM Encapsulation failed".into()))?;
+
+        Ok(CompletedKeyExchange {
+            group: self.name(),
+            pub_key: ct.as_ref().to_vec(),
+            secret: SharedSecret::from(ss.as_ref()),
+        })
+    }
 }
 impl crypto::SupportedKxGroup for MLKEM768 {
     fn start(&self) -> Result<Box<dyn crypto::ActiveKeyExchange>, rustls::Error> {
@@ -45,6 +65,25 @@ impl crypto::SupportedKxGroup for MLKEM768 {
     fn name(&self) -> rustls::NamedGroup {
         rustls::NamedGroup::MLKEM768
     }
+    fn start_and_complete(
+        &self,
+        peer_pub_key: &[u8],
+    ) -> Result<crypto::CompletedKeyExchange, rustls::Error> {
+        let kem = Kem::new(oqs::kem::Algorithm::MlKem768)
+            .map_err(|_| rustls::Error::General("ML-KEM512 Algorithm not found".into()))?;
+        let peer_pk = kem
+            .public_key_from_bytes(peer_pub_key)
+            .ok_or_else(|| rustls::Error::General("Invalid peer public key".into()))?;
+        let (ct, ss) = kem
+            .encapsulate(&peer_pk)
+            .map_err(|_| rustls::Error::General("KEM Encapsulation failed".into()))?;
+
+        Ok(CompletedKeyExchange {
+            group: self.name(),
+            pub_key: ct.as_ref().to_vec(),
+            secret: SharedSecret::from(ss.as_ref()),
+        })
+    }
 }
 impl crypto::SupportedKxGroup for MLKEM1024 {
     fn start(&self) -> Result<Box<dyn crypto::ActiveKeyExchange>, rustls::Error> {
@@ -58,6 +97,25 @@ impl crypto::SupportedKxGroup for MLKEM1024 {
     }
     fn name(&self) -> rustls::NamedGroup {
         rustls::NamedGroup::MLKEM1024
+    }
+    fn start_and_complete(
+        &self,
+        peer_pub_key: &[u8],
+    ) -> Result<crypto::CompletedKeyExchange, rustls::Error> {
+        let kem = Kem::new(oqs::kem::Algorithm::MlKem1024)
+            .map_err(|_| rustls::Error::General("ML-KEM512 Algorithm not found".into()))?;
+        let peer_pk = kem
+            .public_key_from_bytes(peer_pub_key)
+            .ok_or_else(|| rustls::Error::General("Invalid peer public key".into()))?;
+        let (ct, ss) = kem
+            .encapsulate(&peer_pk)
+            .map_err(|_| rustls::Error::General("KEM Encapsulation failed".into()))?;
+
+        Ok(CompletedKeyExchange {
+            group: self.name(),
+            pub_key: ct.as_ref().to_vec(),
+            secret: SharedSecret::from(ss.as_ref()),
+        })
     }
 }
 
