@@ -18,14 +18,14 @@ impl crypto::ActiveKeyExchange for KeyExchange {
         self: Box<KeyExchange>,
         peer_pub_key: &[u8], //peer Public Key
     ) -> Result<crypto::SharedSecret, rustls::Error> {
-        let peer_pk = self
+        let ct = self
             .kem
-            .public_key_from_bytes(peer_pub_key)
-            .ok_or_else(|| rustls::Error::General("Invalid public key".into()))?;
-        let (ct, ss) = self
+            .ciphertext_from_bytes(peer_pub_key)
+            .ok_or_else(|| rustls::Error::General("Invalid Ciphertext".into()))?;
+        let ss = self
             .kem
-            .encapsulate(&peer_pk)
-            .map_err(|_| rustls::Error::General("Ecapsulation failed".into()))?;
+            .decapsulate(&self.sk, ct)
+            .map_err(|_| rustls::Error::General("Kem decapsulation failed".into()))?;
 
         Ok(crypto::SharedSecret::from(ss.as_ref()))
     }
