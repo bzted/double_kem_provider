@@ -1,4 +1,5 @@
 use double_kem_provider::{provider, MlKemKey};
+use log::debug;
 use oqs::kem::Kem;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::server::{self, ClientHello};
@@ -22,8 +23,8 @@ impl RawPublicKeyResolver {
 
 impl ResolvesServerCert for RawPublicKeyResolver {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
-        println!("RawPublicKeyResolver::resolve called");
-        println!(
+        debug!("RawPublicKeyResolver::resolve called");
+        debug!(
             "Raw public key size: {} bytes",
             self.key_pair.public_key.as_ref().len()
         );
@@ -67,7 +68,7 @@ impl rustls::sign::SigningKey for DummySigningKey {
         &self,
         offered: &[rustls::SignatureScheme],
     ) -> Option<Box<dyn rustls::sign::Signer>> {
-        println!(
+        debug!(
             "DummySigningKey::choose_scheme called with schemes: {:?}",
             offered
         );
@@ -87,7 +88,7 @@ struct DummySigner {
 
 impl rustls::sign::Signer for DummySigner {
     fn sign(&self, message: &[u8]) -> Result<Vec<u8>, rustls::Error> {
-        println!(
+        debug!(
             "WARNING: DummySigner.sign() called with {} bytes - returning dummy signature",
             message.len()
         );
@@ -102,7 +103,7 @@ impl rustls::sign::Signer for DummySigner {
 fn main() {
     env_logger::init();
 
-    println!("Starting AuthKEM server...");
+    debug!("Starting AuthKEM server...");
     // Generate a server KEM key pair
     let kem =
         Kem::new(oqs::kem::Algorithm::MlKem768).expect("Failed to create ML-KEM-768 instance");
@@ -112,7 +113,7 @@ fn main() {
     // Save public key to a file for the client to use
     std::fs::write("server_public_key.bin", public_key.as_ref())
         .expect("Failed to write server public key to file");
-    println!("Server public key saved to server_public_key.bin");
+    debug!("Server public key saved to server_public_key.bin");
 
     let signing_key = Arc::new(DummySigningKey);
     let kem_key = Arc::new(MlKemKey::new(
@@ -133,9 +134,9 @@ fn main() {
     // Set up TLS server with AuthKEM provider
     let crypto_provider = provider();
 
-    println!("Provider has {} kx_groups", crypto_provider.kx_groups.len());
+    debug!("Provider has {} kx_groups", crypto_provider.kx_groups.len());
     for kx in &crypto_provider.kx_groups {
-        println!("  KX group: {:?}", kx.name());
+        debug!("  KX group: {:?}", kx.name());
     }
 
     let mut server_config = ServerConfig::builder_with_provider(crypto_provider.into())
@@ -145,7 +146,7 @@ fn main() {
         .with_cert_resolver(resolver);
 
     server_config.key_log = Arc::new(rustls::KeyLogFile::new());
-    println!("Server config created successfully");
+    debug!("Server config created successfully");
 
     let listener = std::net::TcpListener::bind(format!("[::]:{}", 8443)).unwrap();
 
