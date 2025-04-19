@@ -1,5 +1,6 @@
 extern crate alloc;
 use alloc::boxed::Box;
+use log::debug;
 use oqs::kem::Kem;
 use rustls::sign::KemKey;
 use rustls::Error;
@@ -18,11 +19,6 @@ impl MlKemKey {
 }
 impl KemKey for MlKemKey {
     fn decapsulate(&self, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
-        println!("=== DECAPSULATE ===");
-        println!("Ciphertext size: {} bytes", ciphertext.len());
-        println!("Using KEM algorithm: {:?}", self.algorithm);
-        println!("Secret key size: {} bytes", self.sk.len());
-
         let kem = match self.algorithm {
             NamedGroup::MLKEM512 => oqs::kem::Kem::new(oqs::kem::Algorithm::MlKem512),
             NamedGroup::MLKEM768 => oqs::kem::Kem::new(oqs::kem::Algorithm::MlKem768),
@@ -38,11 +34,11 @@ impl KemKey for MlKemKey {
             .ok_or_else(|| Error::General("Invalid ciphertext".into()))?;
 
         let ss = kem.decapsulate(sk, ct).map_err(|e| {
-            println!("Decapsulation failed: {}", e);
+            debug!("Decapsulation failed: {}", e);
             Error::General("Decapsulation failed".into())
         })?;
-        println!("Decapsulation successful!");
-        println!("Shared secret size: {} bytes", ss.as_ref().len());
+        debug!("Decapsulation successful!");
+        debug!("Shared secret size: {} bytes", ss.as_ref().len());
 
         Ok(ss.as_ref().to_vec())
     }
