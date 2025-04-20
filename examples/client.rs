@@ -3,25 +3,25 @@ use std::io::{stdout, Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
 
-use double_kem_provider::{provider, KX_GROUPS, MLKEM1024, MLKEM512, MLKEM768};
+use double_kem_provider::provider;
 use log::debug;
 use rustls::client::danger::ServerCertVerifier;
 use rustls::pki_types::{CertificateDer, ServerName};
-use rustls::{ClientConfig, ClientConnection, ContentType, HandshakeType};
-use rustls::{ConfigBuilder, Error};
+use rustls::Error;
+use rustls::{ClientConfig, ClientConnection};
 
 #[derive(Debug)]
-struct RawPublicKeyVerifier {
-    trusted_key: Vec<u8>,
+struct Verifier {
+    key: Vec<u8>,
 }
 
-impl RawPublicKeyVerifier {
-    fn new(trusted_key: Vec<u8>) -> Self {
-        Self { trusted_key }
+impl Verifier {
+    fn new(key: Vec<u8>) -> Self {
+        Self { key }
     }
 }
 
-impl ServerCertVerifier for RawPublicKeyVerifier {
+impl ServerCertVerifier for Verifier {
     fn verify_server_cert(
         &self,
         end_entity: &CertificateDer<'_>,
@@ -30,44 +30,6 @@ impl ServerCertVerifier for RawPublicKeyVerifier {
         ocsp_response: &[u8],
         now_time: rustls::pki_types::UnixTime,
     ) -> Result<rustls::client::danger::ServerCertVerified, Error> {
-        debug!("Verifying server's certificate:");
-        debug!("  Server cert size: {} bytes", end_entity.as_ref().len());
-        debug!("  Trusted key size: {} bytes", self.trusted_key.len());
-        debug!("  Intermediates: {}", intermediates.len());
-        debug!("  Server name: {:?}", server_name);
-        debug!("  OCSP response size: {} bytes", ocsp_response.len());
-        debug!("---------------------------");
-        debug!(
-            "Client: Received server cert with first few bytes: {:02x?}",
-            &end_entity.as_ref()[..std::cmp::min(16, end_entity.as_ref().len())]
-        );
-        debug!(
-            "Client: Expected server key with first few bytes: {:02x?}",
-            &self.trusted_key[..std::cmp::min(16, self.trusted_key.len())]
-        );
-        if end_entity.as_ref() == self.trusted_key.as_slice() {
-            debug!("Raw public key verification successful (exact match)");
-            return Ok(rustls::client::danger::ServerCertVerified::assertion());
-        }
-        if end_entity
-            .as_ref()
-            .windows(self.trusted_key.len())
-            .any(|window| window == self.trusted_key.as_slice())
-        {
-            debug!("Raw public key verification successful (contained match)");
-            return Ok(rustls::client::danger::ServerCertVerified::assertion());
-        }
-        debug!("Raw public key verification failed!");
-        debug!(
-            "Certificate first bytes: {:?}",
-            &end_entity.as_ref()[0..std::cmp::min(20, end_entity.as_ref().len())]
-        );
-        debug!(
-            "Trusted key first bytes: {:?}",
-            &self.trusted_key[0..std::cmp::min(20, self.trusted_key.len())]
-        );
-
-        debug!("WARNING: Accepting any certificate for debugging purposes!");
         Ok(rustls::client::danger::ServerCertVerified::assertion())
     }
 
@@ -110,6 +72,27 @@ impl ServerCertVerifier for RawPublicKeyVerifier {
         debug!("requires_raw_public_keys called - returning true");
         true
     }
+
+    fn authkem(&self) -> bool {
+        debug!("Trying authkem flow");
+        true
+    }
+
+    fn encapsulate(&self, server_pk: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Error> {
+        debug!("About to encapsulate to peers public key");
+
+        let kem = oqs::kem::Kem::new(oqs::kem::Algorithm::MlKem768)
+            .map_err(|_| Error::General("Failed to create KEM instance".into()))?;
+
+        let pk = kem
+            .public_key_from_bytes(server_pk)
+            .ok_or_else(|| Error::General("Invalid public key".into()))?;
+        let (ct, ss) = kem
+            .encapsulate(pk)
+            .map_err(|_| Error::General("Encapsulation failed".into()))?;
+
+        Ok((ct.as_ref().to_vec(), ss.as_ref().to_vec()))
+    }
 }
 
 fn main() {
@@ -125,7 +108,7 @@ fn main() {
         }
     };
 
-    let server_verifier = Arc::new(RawPublicKeyVerifier::new(server_public_key.clone()));
+    let server_verifier = Arc::new(Verifier::new(server_public_key.clone()));
 
     let crypto_provider = provider();
 

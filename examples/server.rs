@@ -1,31 +1,30 @@
 use double_kem_provider::{provider, MlKemKey};
 use log::debug;
 use oqs::kem::Kem;
-use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use rustls::pki_types::CertificateDer;
 use rustls::server::{self, ClientHello};
 use rustls::server::{Acceptor, ResolvesServerCert};
 use rustls::sign::CertifiedKey;
-use rustls::{ContentType, HandshakeType, NamedGroup, ServerConfig, ServerConnection};
-use std::io::{Read, Write};
-use std::net::TcpListener;
+use rustls::{NamedGroup, ServerConfig};
+use std::io::Write;
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct RawPublicKeyResolver {
+struct Resolver {
     key_pair: KeyPair,
 }
 
-impl RawPublicKeyResolver {
+impl Resolver {
     fn new(key_pair: KeyPair) -> Self {
         Self { key_pair }
     }
 }
 
-impl ResolvesServerCert for RawPublicKeyResolver {
+impl ResolvesServerCert for Resolver {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
-        debug!("RawPublicKeyResolver::resolve called");
+        debug!("Resolver::resolve called");
         debug!(
-            "Raw public key size: {} bytes",
+            "Key size: {} bytes",
             self.key_pair.public_key.as_ref().len()
         );
 
@@ -52,7 +51,6 @@ impl ResolvesServerCert for RawPublicKeyResolver {
 struct KeyPair {
     public_key: oqs::kem::PublicKey,
     private_key: Arc<dyn rustls::sign::SigningKey>,
-    algorithm: oqs::kem::Algorithm,
     kem_key: Option<Arc<dyn rustls::sign::KemKey>>,
 }
 
@@ -124,12 +122,11 @@ fn main() {
     let key_pair = KeyPair {
         public_key,
         private_key: signing_key,
-        algorithm: oqs::kem::Algorithm::MlKem768,
         kem_key: Some(kem_key),
     };
 
     // Create our custom resolver
-    let resolver = Arc::new(RawPublicKeyResolver::new(key_pair));
+    let resolver = Arc::new(Resolver::new(key_pair));
 
     // Set up TLS server with AuthKEM provider
     let crypto_provider = provider();
