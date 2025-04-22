@@ -1,97 +1,12 @@
+use double_kem_provider::resolver::{KeyPair, Resolver};
+use double_kem_provider::sign::DummySigningKey;
 use double_kem_provider::{provider, MlKemKey};
 use log::debug;
 use oqs::kem::Kem;
-use rustls::pki_types::CertificateDer;
-use rustls::server::{self, ClientHello};
-use rustls::server::{Acceptor, ResolvesServerCert};
-use rustls::sign::CertifiedKey;
+use rustls::server::Acceptor;
 use rustls::{NamedGroup, ServerConfig};
 use std::io::Write;
 use std::sync::Arc;
-
-#[derive(Debug)]
-struct Resolver {
-    key_pair: KeyPair,
-}
-
-impl Resolver {
-    fn new(key_pair: KeyPair) -> Self {
-        Self { key_pair }
-    }
-}
-
-impl ResolvesServerCert for Resolver {
-    fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
-        debug!("Resolver::resolve called");
-        debug!(
-            "Key size: {} bytes",
-            self.key_pair.public_key.as_ref().len()
-        );
-
-        let raw_key = self.key_pair.public_key.as_ref().to_vec();
-
-        let cert = CertificateDer::from(raw_key.clone());
-
-        let certified_key = CertifiedKey {
-            cert: vec![cert],
-            key: self.key_pair.private_key.clone(),
-            ocsp: None,
-            kem_key: self.key_pair.kem_key.clone(),
-        };
-
-        Some(Arc::new(certified_key))
-    }
-
-    fn only_raw_public_keys(&self) -> bool {
-        true
-    }
-}
-
-#[derive(Debug)]
-struct KeyPair {
-    public_key: oqs::kem::PublicKey,
-    private_key: Arc<dyn rustls::sign::SigningKey>,
-    kem_key: Option<Arc<dyn rustls::sign::KemKey>>,
-}
-
-#[derive(Debug)]
-struct DummySigningKey;
-
-impl rustls::sign::SigningKey for DummySigningKey {
-    fn algorithm(&self) -> rustls::SignatureAlgorithm {
-        rustls::SignatureAlgorithm::KEM
-    }
-
-    fn choose_scheme(
-        &self,
-        offered: &[rustls::SignatureScheme],
-    ) -> Option<Box<dyn rustls::sign::Signer>> {
-        let scheme = offered
-            .first()
-            .copied()
-            .unwrap_or(rustls::SignatureScheme::MLKEM768);
-        Some(Box::new(DummySigner { scheme }))
-    }
-}
-
-#[derive(Debug)]
-struct DummySigner {
-    scheme: rustls::SignatureScheme,
-}
-
-impl rustls::sign::Signer for DummySigner {
-    fn sign(&self, message: &[u8]) -> Result<Vec<u8>, rustls::Error> {
-        debug!(
-            "WARNING: DummySigner.sign() called with {} bytes - returning dummy signature",
-            message.len()
-        );
-        Ok(vec![0u8; 64])
-    }
-
-    fn scheme(&self) -> rustls::SignatureScheme {
-        self.scheme
-    }
-}
 
 fn main() {
     env_logger::init();
@@ -110,11 +25,7 @@ fn main() {
         secret_key.as_ref().to_vec(),
     ));
     // Create our key pair structure
-    let key_pair = KeyPair {
-        public_key,
-        private_key: signing_key,
-        kem_key: Some(kem_key),
-    };
+    let key_pair = KeyPair::new(public_key, signing_key, Some(kem_key));
 
     // Create our custom resolver
     let resolver = Arc::new(Resolver::new(key_pair));

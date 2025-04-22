@@ -4,6 +4,9 @@ use rustls::crypto::aws_lc_rs;
 mod algorithms;
 mod kem_key;
 mod key_exchange;
+pub mod resolver;
+pub mod sign;
+pub mod verify;
 pub use algorithms::{KX_GROUPS, MLKEM1024, MLKEM512, MLKEM768};
 pub use key_exchange::KeyExchange;
 
