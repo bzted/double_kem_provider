@@ -26,6 +26,7 @@ impl KemKey for MlKemKey {
         let sk = oqs::kem::Kem::secret_key_from_bytes(&kem, &self.sk)
             .ok_or_else(|| Error::General("Invalid private key".into()))?;
 
+        debug!("Ciphertext size: {} bytes", ciphertext.len());
         let ct = oqs::kem::Kem::ciphertext_from_bytes(&kem, ciphertext)
             .ok_or_else(|| Error::General("Invalid ciphertext".into()))?;
 
