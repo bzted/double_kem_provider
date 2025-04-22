@@ -70,7 +70,7 @@ impl crypto::SupportedKxGroup for MLKEM768 {
         peer_pub_key: &[u8],
     ) -> Result<crypto::CompletedKeyExchange, rustls::Error> {
         let kem = Kem::new(oqs::kem::Algorithm::MlKem768)
-            .map_err(|_| rustls::Error::General("ML-KEM512 Algorithm not found".into()))?;
+            .map_err(|_| rustls::Error::General("ML-KEM768 Algorithm not found".into()))?;
         let peer_pk = kem
             .public_key_from_bytes(peer_pub_key)
             .ok_or_else(|| rustls::Error::General("Invalid peer public key".into()))?;
@@ -103,7 +103,7 @@ impl crypto::SupportedKxGroup for MLKEM1024 {
         peer_pub_key: &[u8],
     ) -> Result<crypto::CompletedKeyExchange, rustls::Error> {
         let kem = Kem::new(oqs::kem::Algorithm::MlKem1024)
-            .map_err(|_| rustls::Error::General("ML-KEM512 Algorithm not found".into()))?;
+            .map_err(|_| rustls::Error::General("ML-KEM1024 Algorithm not found".into()))?;
         let peer_pk = kem
             .public_key_from_bytes(peer_pub_key)
             .ok_or_else(|| rustls::Error::General("Invalid peer public key".into()))?;
