@@ -47,34 +47,3 @@ impl KemKey for MlKemKey {
         self.algorithm
     }
 }
-
-#[derive(Debug)]
-pub struct KemKeyProvider;
-
-impl KeyProvider for KemKeyProvider {
-    fn load_private_key(
-        &self,
-        key_der: PrivateKeyDer<'static>,
-    ) -> Result<Arc<dyn rustls::sign::SigningKey>, Error> {
-        Err(Error::General("No private key".into()))
-    }
-
-    fn load_kem_private_key(
-        &self,
-        key_der: PrivateKeyDer<'static>,
-        algorithm: NamedGroup,
-    ) -> Result<Arc<dyn KemKey>, Error> {
-        let private_key = match key_der {
-            PrivateKeyDer::Pkcs8(ref pkcs8) => pkcs8.secret_pkcs8_der().to_vec(),
-            PrivateKeyDer::Sec1(ref sec1) => sec1.secret_sec1_der().to_vec(),
-            PrivateKeyDer::Pkcs1(ref pkcs1) => pkcs1.secret_pkcs1_der().to_vec(),
-            _ => return Err(Error::General("Unsupported key format for KEM".into())),
-        };
-        println!("KEM private key loaded, size: {} bytes", private_key.len());
-        Ok(Arc::new(MlKemKey::new(algorithm, private_key)))
-    }
-
-    fn fips(&self) -> bool {
-        false
-    }
-}

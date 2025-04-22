@@ -66,11 +66,6 @@ impl rustls::sign::SigningKey for DummySigningKey {
         &self,
         offered: &[rustls::SignatureScheme],
     ) -> Option<Box<dyn rustls::sign::Signer>> {
-        debug!(
-            "DummySigningKey::choose_scheme called with schemes: {:?}",
-            offered
-        );
-
         let scheme = offered
             .first()
             .copied()
@@ -108,12 +103,8 @@ fn main() {
 
     let (public_key, secret_key) = kem.keypair().expect("Failed to generate KEM key pair");
 
-    // Save public key to a file for the client to use
-    std::fs::write("server_public_key.bin", public_key.as_ref())
-        .expect("Failed to write server public key to file");
-    debug!("Server public key saved to server_public_key.bin");
-
     let signing_key = Arc::new(DummySigningKey);
+
     let kem_key = Arc::new(MlKemKey::new(
         NamedGroup::MLKEM768,
         secret_key.as_ref().to_vec(),

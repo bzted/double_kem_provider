@@ -11,15 +11,7 @@ use rustls::Error;
 use rustls::{ClientConfig, ClientConnection};
 
 #[derive(Debug)]
-struct Verifier {
-    key: Vec<u8>,
-}
-
-impl Verifier {
-    fn new(key: Vec<u8>) -> Self {
-        Self { key }
-    }
-}
+struct Verifier;
 
 impl ServerCertVerifier for Verifier {
     fn verify_server_cert(
@@ -97,18 +89,8 @@ impl ServerCertVerifier for Verifier {
 
 fn main() {
     env_logger::init();
-    let server_public_key = match std::fs::read("server_public_key.bin") {
-        Ok(key) => {
-            debug!("Loaded server public key from file: {} bytes", key.len());
-            key
-        }
-        Err(_) => {
-            debug!("Server public key file not found. Make sure to run the server first.");
-            Vec::new()
-        }
-    };
 
-    let server_verifier = Arc::new(Verifier::new(server_public_key.clone()));
+    let server_verifier = Arc::new(Verifier);
 
     let crypto_provider = provider();
 
