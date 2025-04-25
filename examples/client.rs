@@ -3,8 +3,8 @@ use std::io::{stdout, Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
 
-use double_kem_provider::provider;
-use double_kem_provider::verify::Verifier;
+use kemtls_provider::provider;
+use kemtls_provider::verify::Verifier;
 use log::debug;
 use rustls::{ClientConfig, ClientConnection};
 
@@ -44,7 +44,10 @@ fn main() {
         )
         .unwrap();
 
-    let cs = tls_stream.conn.negotiated_cipher_suite().unwrap();
+    let cs = tls_stream
+        .conn
+        .negotiated_cipher_suite()
+        .unwrap();
     writeln!(
         &mut std::io::stderr(),
         "Curernt ciphersuite: {:?}",
@@ -53,6 +56,8 @@ fn main() {
     .unwrap();
 
     let mut plaintext = Vec::new();
-    tls_stream.read_to_end(&mut plaintext).unwrap();
+    tls_stream
+        .read_to_end(&mut plaintext)
+        .unwrap();
     stdout().write_all(&plaintext).unwrap();
 }

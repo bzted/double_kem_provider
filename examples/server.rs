@@ -1,6 +1,6 @@
-use double_kem_provider::resolver::{KeyPair, Resolver};
-use double_kem_provider::sign::DummySigningKey;
-use double_kem_provider::{provider, MlKemKey};
+use kemtls_provider::resolver::{KeyPair, Resolver};
+use kemtls_provider::sign::DummySigningKey;
+use kemtls_provider::{provider, MlKemKey};
 use log::debug;
 use oqs::kem::Kem;
 use rustls::server::Acceptor;
@@ -16,7 +16,9 @@ fn main() {
     let kem =
         Kem::new(oqs::kem::Algorithm::MlKem768).expect("Failed to create ML-KEM-768 instance");
 
-    let (public_key, secret_key) = kem.keypair().expect("Failed to generate KEM key pair");
+    let (public_key, secret_key) = kem
+        .keypair()
+        .expect("Failed to generate KEM key pair");
 
     let signing_key = Arc::new(DummySigningKey);
 
